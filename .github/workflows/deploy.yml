@@ -50,10 +50,12 @@ jobs:
           gradle-version: wrapper
 
       - name: Grant execute permission for gradlew
-        run: chmod +x HelloWorldFunction/gradlew
+        working-directory: HelloWorldFunction
+        run: chmod +x gradlew
 
       - name: Build and Test
-        run: ./HelloWorldFunction/gradlew build test
+        working-directory: HelloWorldFunction
+        run: ./gradlew build test
 
       - name: Setup AWS SAM
         uses: aws-actions/setup-sam@v2
