@@ -53,7 +53,7 @@ jobs:
         run: chmod +x HelloWorldFunction/gradlew
 
       - name: Build and Test
-        run: HelloWorldFunction/gradlew build test
+        run: ./HelloWorldFunction/gradlew build test
 
       - name: Setup AWS SAM
         uses: aws-actions/setup-sam@v2

@@ -25,4 +25,4 @@ jobs:
         run: chmod +x HelloWorldFunction/gradlew
 
       - name: Build and Test
-        run: HelloWorldFunction/gradlew build test
+        run: ./HelloWorldFunction/gradlew build test
