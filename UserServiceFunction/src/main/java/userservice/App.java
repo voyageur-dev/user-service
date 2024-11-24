@@ -1,4 +1,4 @@
-package helloworld;
+package userservice;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
