@@ -6,9 +6,6 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: HelloWorldFunction/
     steps:
       - uses: actions/checkout@v4
 
@@ -25,7 +22,9 @@ jobs:
           gradle-version: wrapper
 
       - name: Grant execute permission for gradlew
+        working-directory: HelloWorldFunction
         run: chmod +x gradlew
 
       - name: Build and Test
+        working-directory: HelloWorldFunction
         run: ./gradlew build test
