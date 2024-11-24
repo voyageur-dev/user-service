@@ -1,0 +1,43 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  user-service
+
+  Sample SAM Template for user-service
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      PackageType: Image
+      Architectures:
+        - x86_64
+      Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
+        Variables:
+          USER_POOL_ID: !Ref UserPoolId
+      Events:
+        CreateUser:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: post
+        GetUser:
+          Type: Api
+          Properties:
+            Path: /users/{username}
+            Method: get
+    Metadata:
+      DockerTag: java21-gradle-v1
+      DockerContext: ./HelloWorldFunction
+      Dockerfile: Dockerfile
+
+Parameters:
+  UserPoolId:
+    Type: String
+    Description: "Cognito User Pool ID"
