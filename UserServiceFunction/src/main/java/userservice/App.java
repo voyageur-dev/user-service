@@ -18,6 +18,9 @@ import java.time.Instant;
  */
 public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> {
 
+    private static final String CREATE_USER_PATH = "POST /users";
+    private static final String GET_USER_PATH = "GET /users/{username}";
+
     private final String userPoolId;
     private final CognitoIdentityProviderClient cognitoClient;
     private final Gson gson;
@@ -30,20 +33,16 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
 
     @Override
     public APIGatewayV2HTTPResponse handleRequest(APIGatewayV2HTTPEvent event, Context context) {
-        String path = event.getRawPath();
-        String httpMethod = event.getRequestContext().getHttp().getMethod();
+        String path = event.getRouteKey();
 
-        if ("/users".equals(path) && "POST".equalsIgnoreCase(httpMethod)) {
-            return createUser(event);
-        } else if (path.startsWith("/users/") && "GET".equalsIgnoreCase(httpMethod)) {
-            String username = path.substring("/users/".length());
-            return getUser(username);
-        }
-
-        return APIGatewayV2HTTPResponse.builder()
-                .withStatusCode(HttpStatusCode.NOT_FOUND)
-                .withBody("Path Not Found")
-                .build();
+        return switch (path) {
+            case CREATE_USER_PATH -> createUser(event);
+            case GET_USER_PATH -> getUser(event.getPathParameters().get("username"));
+            default -> APIGatewayV2HTTPResponse.builder()
+                    .withStatusCode(HttpStatusCode.NOT_FOUND)
+                    .withBody("Path Not Found")
+                    .build();
+        };
     }
 
     private APIGatewayV2HTTPResponse createUser(APIGatewayV2HTTPEvent event) {
