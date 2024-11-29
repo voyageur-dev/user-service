@@ -1,4 +1,4 @@
-package helloworld;
+package userservice;
 
 import java.time.Instant;
 
