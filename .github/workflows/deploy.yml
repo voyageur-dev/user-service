@@ -16,8 +16,28 @@ on:
           - prod
 
 jobs:
-  validate:
+  set-environment:
     runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.set-env.outputs.environment }}
+    steps:
+      - name: Set environment
+        id: set-env
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+          else
+            echo "environment=int" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Display selected environment
+        run: |
+          echo "Selected environment: ${{ steps.set-env.outputs.environment }}"
+
+  deploy:
+    needs: set-environment
+    runs-on: ubuntu-latest
+    environment: ${{ needs.set-environment.outputs.environment }}
     defaults:
       run:
         shell: bash
@@ -40,35 +60,6 @@ jobs:
 
       - name: Build and Test
         run: ./gradlew build test
-
-  set-environment:
-    runs-on: ubuntu-latest
-    outputs:
-      environment: ${{ steps.set-env.outputs.environment }}
-    steps:
-      - name: Set environment
-        id: set-env
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
-          else
-            echo "environment=int" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Display selected environment
-        run: |
-          echo "Selected environment: ${{ steps.set-env.outputs.environment }}"
-
-  deploy:
-    needs: [validate, set-environment]
-    runs-on: ubuntu-latest
-    environment: ${{ needs.set-environment.outputs.environment }}
-    defaults:
-      run:
-        shell: bash
-        working-directory: UserServiceFunction
-    steps:
-      - uses: actions/checkout@v4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
