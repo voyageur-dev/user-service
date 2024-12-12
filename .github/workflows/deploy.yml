@@ -16,22 +16,7 @@ on:
           - prod
 
 jobs:
-  set-environment:
-    runs-on: ubuntu-latest
-    outputs:
-      environment: ${{ steps.set-env.outputs.environment }}
-    steps:
-      - name: Set environment
-        id: set-env
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
-          else
-            echo "environment=int" >> $GITHUB_OUTPUT
-          fi
-
   validate:
-    needs: set-environment
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -56,8 +41,26 @@ jobs:
       - name: Build and Test
         run: ./gradlew build test
 
+  set-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.set-env.outputs.environment }}
+    steps:
+      - name: Set environment
+        id: set-env
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "environment=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+          else
+            echo "environment=int" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Display selected environment
+        run: |
+          echo "Selected environment: ${{ steps.set-env.outputs.environment }}"
+
   deploy:
-    needs: validate
+    needs: [validate, set-environment]
     runs-on: ubuntu-latest
     environment: ${{ needs.set-environment.outputs.environment }}
     defaults:
