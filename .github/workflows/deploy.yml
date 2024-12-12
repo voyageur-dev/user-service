@@ -95,7 +95,7 @@ jobs:
           # Update function code
           aws lambda update-function-code \
             --function-name ${{ vars.REPO_NAME }}-${{ needs.set-environment.outputs.environment }} \
-            --image-uri public.ecr.aws/${{ vars.AWS_PUBLIC_ECR_ALIAS }}//$ECR_REPOSITORY:$IMAGE_TAG
+            --image-uri public.ecr.aws/${{ vars.AWS_PUBLIC_ECR_ALIAS }}/$ECR_REPOSITORY:$IMAGE_TAG
           
           # Update function configuration and tags
           aws lambda tag-resource \
