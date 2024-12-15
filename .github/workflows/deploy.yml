@@ -101,8 +101,7 @@ jobs:
           aws lambda tag-resource \
             --resource arn:aws:lambda:${{ vars.AWS_REGION }}:${{ vars.AWS_ACCOUNT_ID }}:function:${{ vars.REPO_NAME }}-${{ needs.set-environment.outputs.environment }} \
             --tags \
-              Environment=${{ needs.set-environment.outputs.environment }} \
-              Project=user-service
+              Environment=${{ needs.set-environment.outputs.environment }}
 
           # Update function configuration
           aws lambda update-function-configuration \
