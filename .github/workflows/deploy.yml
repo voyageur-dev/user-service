@@ -96,10 +96,3 @@ jobs:
           aws lambda update-function-code \
             --function-name ${{ vars.REPO_NAME }}-${{ needs.set-environment.outputs.environment }} \
             --image-uri $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
-          # Update function configuration
-          aws lambda update-function-configuration \
-            --function-name ${{ vars.REPO_NAME }}-${{ needs.set-environment.outputs.environment }} \
-            --environment "Variables={
-              UserPoolId=${{ vars.COGNITO_USER_POOL_ID }}
-            }"
