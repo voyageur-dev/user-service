@@ -30,10 +30,18 @@ jobs:
             echo "environment=int" >> $GITHUB_OUTPUT
           fi
 
+      - name: Display selected environment
+        run: |
+          echo "Selected environment: ${{ steps.set-env.outputs.environment }}"
+
   deploy:
     needs: set-environment
     runs-on: ubuntu-latest
     environment: ${{ needs.set-environment.outputs.environment }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: UserServiceFunction
     steps:
       - uses: actions/checkout@v4
 
@@ -48,15 +56,10 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Grant execute permission for gradlew
-        working-directory: UserServiceFunction
         run: chmod +x gradlew
 
       - name: Build and Test
-        working-directory: UserServiceFunction
         run: ./gradlew build test
-
-      - name: Setup AWS SAM
-        uses: aws-actions/setup-sam@v2
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -65,17 +68,31 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_INFRA_ADMIN_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_REGION }}
 
-      - name: SAM build
-        run: sam build
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-      - name: SAM deploy
+      - name: Build, tag, and push the image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ vars.REPO_NAME }}-${{ needs.set-environment.outputs.environment }}
+          IMAGE_TAG: latest
         run: |
-          sam deploy --no-confirm-changeset \
-            --stack-name user-service-${{ needs.set-environment.outputs.environment }} \
-            --capabilities CAPABILITY_IAM \
-            --parameter-overrides \
-              UserPoolId=${{ vars.COGNITO_USER_POOL_ID }} \
-            --tags \
-              Environment=${{ needs.set-environment.outputs.environment }} \
-              Project=user-service \
-            --resolve-s3
+          # Build a docker container and push it to ECR 
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          echo "Pushing image to ECR..."
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Deploy to lambda
+        id: deploy-lambda
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ vars.REPO_NAME }}-${{ needs.set-environment.outputs.environment }}
+          IMAGE_TAG: latest
+        run: |
+          # Update function code
+          aws lambda update-function-code \
+            --function-name ${{ vars.REPO_NAME }}-${{ needs.set-environment.outputs.environment }} \
+            --image-uri $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
