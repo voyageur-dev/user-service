@@ -21,6 +21,7 @@ Resources:
       Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
         Variables:
           USER_POOL_ID: !Ref UserPoolId
+          CLIENT_ID: !Ref ClientId
       Events:
         CreateUser:
           Type: Api
@@ -32,6 +33,11 @@ Resources:
           Properties:
             Path: /users/{username}
             Method: get
+        SignIn:
+          Type: Api
+          Properties:
+            Path: /users/signIn
+            Method: post
       Policies:
         - Statement:
             - Effect: Allow
@@ -47,3 +53,6 @@ Parameters:
   UserPoolId:
     Type: String
     Description: "Cognito User Pool ID"
+  ClientId:
+    Type: String
+    Description: "Cognito App Client ID"

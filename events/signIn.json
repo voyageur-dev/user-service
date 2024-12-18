@@ -1,7 +1,7 @@
 {
   "version": "2.0",
-  "routeKey": "GET /users/{username}",
-  "rawPath": "/users/testuser",
+  "routeKey": "POST /users/signIn",
+  "rawPath": "/users/signIn",
   "rawQueryString": "",
   "headers": {
     "Content-Type": "application/json"
@@ -12,20 +12,18 @@
     "domainName": "id.execute-api.us-east-1.amazonaws.com",
     "domainPrefix": "id",
     "http": {
-      "method": "GET",
-      "path": "/users/testuser",
+      "method": "POST",
+      "path": "/users/signIn",
       "protocol": "HTTP/1.1",
       "sourceIp": "IP",
       "userAgent": "agent"
     },
     "requestId": "id",
-    "routeKey": "GET /users/{username}",
+    "routeKey": "POST /users/signIn",
     "stage": "$default",
     "time": "12/Mar/2020:19:03:58 +0000",
     "timeEpoch": 1583348638390
   },
-  "pathParameters": {
-    "username": "newuser"
-  },
+  "body": "{\"username\":\"newuser\",\"password\":\"password\"}",
   "isBase64Encoded": false
 }
