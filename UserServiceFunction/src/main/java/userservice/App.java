@@ -26,11 +26,13 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
     private static final String GET_USER_PATH = "GET /users/{username}";
 
     private final String userPoolId;
+    private final String clientId;
     private final CognitoIdentityProviderClient cognitoClient;
     private final Gson gson;
 
     public App() {
         this.userPoolId = System.getenv("USER_POOL_ID");
+        this.clientId = System.getenv("CLIENT_ID");
         this.cognitoClient = CognitoIdentityProviderClient.builder().region(Region.US_EAST_1).build();
         this.gson = new GsonBuilder().registerTypeAdapter(Instant.class, new InstantTypeAdapter()).create();
     }
@@ -129,6 +131,7 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
 
             AdminInitiateAuthRequest authRequest = AdminInitiateAuthRequest.builder()
                     .userPoolId(userPoolId)
+                    .clientId(clientId)
                     .authFlow(AuthFlowType.ADMIN_USER_PASSWORD_AUTH)
                     .authParameters(Map.of(
                             "USERNAME", username,
@@ -156,11 +159,6 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
             return APIGatewayV2HTTPResponse.builder()
                     .withStatusCode(HttpStatusCode.UNAUTHORIZED)
                     .withBody("Invalid username or password")
-                    .build();
-        } catch (UserNotFoundException e) {
-            return APIGatewayV2HTTPResponse.builder()
-                    .withStatusCode(HttpStatusCode.NOT_FOUND)
-                    .withBody("User not found")
                     .build();
         } catch (Exception e) {
             return APIGatewayV2HTTPResponse.builder()
