@@ -32,6 +32,11 @@ Resources:
           Properties:
             Path: /users/{username}
             Method: get
+        SignIn:
+          Type: Api
+          Properties:
+            Path: /users/signIn
+            Method: post
       Policies:
         - Statement:
             - Effect: Allow

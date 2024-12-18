@@ -12,7 +12,7 @@ dependencies {
     implementation platform('software.amazon.awssdk:bom:2.20.162')
     implementation 'software.amazon.awssdk:cognitoidentityprovider'
     implementation 'com.google.code.gson:gson:2.10.1'
-    testImplementation 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.13.1'
 }
 
 sourceCompatibility = 21
