@@ -57,14 +57,12 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
             String body = event.getBody();
             JsonObject jsonBody = gson.fromJson(body, JsonObject.class);
             String username = jsonBody.get("username").getAsString();
-            String email = jsonBody.get("email").getAsString();
             String password = jsonBody.get("password").getAsString();
 
             AdminCreateUserRequest createUserRequest =  AdminCreateUserRequest.builder()
                     .userPoolId(userPoolId)
                     .username(username)
                     .userAttributes(
-                            AttributeType.builder().name("email").value(email).build(),
                             AttributeType.builder().name("email_verified").value("true").build()
                     )
                     .temporaryPassword(password)
