@@ -23,7 +23,7 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
 
     private static final String SIGN_IN_PATH = "POST /users/signIn";
     private static final String SIGN_UP_PATH = "POST /users";
-    private static final String SIGN_UP_CONFIRM_PATH = "POST /users/code";
+    private static final String CONFIRM_SIGN_UP_PATH = "POST /users/code";
     private static final String RESEND_CONFIRM_PATH = "POST /users/resend";
     private static final String GET_USER_PATH = "GET /users/{username}";
 
@@ -46,7 +46,7 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
         return switch (path) {
             case SIGN_UP_PATH -> signUp(event);
             case SIGN_IN_PATH -> signIn(event);
-            case SIGN_UP_CONFIRM_PATH -> confirmSignUp(event);
+            case CONFIRM_SIGN_UP_PATH -> confirmSignUp(event);
             case RESEND_CONFIRM_PATH -> resendCode(event);
             case GET_USER_PATH -> getUser(event);
             default -> APIGatewayV2HTTPResponse.builder()
