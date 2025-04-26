@@ -11,6 +11,7 @@ import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityPr
 import software.amazon.awssdk.services.cognitoidentityprovider.model.*;
 import userservice.models.GetUserResponse;
 import userservice.models.SignInResponse;
+import userservice.models.SignUpResponse;
 
 import java.lang.reflect.Type;
 import java.time.Instant;
@@ -143,7 +144,7 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
                     .password(password)
                     .build();
 
-            SignUpResponse signUpResponse = cognitoClient.signUp(signUpRequest);
+            SignUpResponse signUpResponse = new SignUpResponse(cognitoClient.signUp(signUpRequest).userSub());
 
             return APIGatewayV2HTTPResponse.builder()
                     .withStatusCode(HttpStatusCode.CREATED)
