@@ -21,8 +21,10 @@ import java.util.Map;
  */
 public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HTTPResponse> {
 
-    private static final String CREATE_USER_PATH = "POST /users";
     private static final String SIGN_IN_PATH = "POST /users/signIn";
+    private static final String SIGN_UP_PATH = "POST /users";
+    private static final String CONFIRM_SIGN_UP_PATH = "POST /users/code";
+    private static final String RESEND_CONFIRM_PATH = "POST /users/resend";
     private static final String GET_USER_PATH = "GET /users/{username}";
 
     private final String userPoolId;
@@ -42,9 +44,11 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
         String path = event.getRouteKey();
 
         return switch (path) {
-            case CREATE_USER_PATH -> createUser(event);
-            case GET_USER_PATH -> getUser(event.getPathParameters().get("username"));
+            case SIGN_UP_PATH -> signUp(event);
             case SIGN_IN_PATH -> signIn(event);
+            case CONFIRM_SIGN_UP_PATH -> confirmSignUp(event);
+            case RESEND_CONFIRM_PATH -> resendCode(event);
+            case GET_USER_PATH -> getUser(event);
             default -> APIGatewayV2HTTPResponse.builder()
                     .withStatusCode(HttpStatusCode.NOT_FOUND)
                     .withBody("Path Not Found")
@@ -52,53 +56,11 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
         };
     }
 
-    private APIGatewayV2HTTPResponse createUser(APIGatewayV2HTTPEvent event) {
-        try {
-            String body = event.getBody();
-            JsonObject jsonBody = gson.fromJson(body, JsonObject.class);
-            String username = jsonBody.get("username").getAsString();
-            String email = jsonBody.get("email").getAsString();
-            String password = jsonBody.get("password").getAsString();
-
-            AdminCreateUserRequest createUserRequest =  AdminCreateUserRequest.builder()
-                    .userPoolId(userPoolId)
-                    .username(username)
-                    .userAttributes(
-                            AttributeType.builder().name("email").value(email).build(),
-                            AttributeType.builder().name("email_verified").value("true").build()
-                    )
-                    .temporaryPassword(password)
-                    .messageAction(MessageActionType.SUPPRESS)
-                    .build();
-
-            cognitoClient.adminCreateUser(createUserRequest);
-
-            AdminSetUserPasswordRequest setPasswordRequest = AdminSetUserPasswordRequest.builder()
-                    .userPoolId(userPoolId)
-                    .username(username)
-                    .password(password)
-                    .permanent(true)
-                    .build();
-
-            cognitoClient.adminSetUserPassword(setPasswordRequest);
-
-            return APIGatewayV2HTTPResponse.builder()
-                    .withStatusCode(HttpStatusCode.CREATED)
-                    .withBody(gson.toJson(getUser(username)))
-                    .build();
-        } catch (Exception e) {
-            return APIGatewayV2HTTPResponse.builder()
-                    .withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
-                    .withBody("Error creating user: " + e.getMessage())
-                    .build();
-        }
-    }
-
-    private APIGatewayV2HTTPResponse getUser(String username) {
+    private APIGatewayV2HTTPResponse getUser(APIGatewayV2HTTPEvent event) {
         try {
             AdminGetUserRequest getUserRequest = AdminGetUserRequest.builder()
                     .userPoolId(userPoolId)
-                    .username(username)
+                    .username(event.getPathParameters().get("username"))
                     .build();
 
             AdminGetUserResponse getUserResponse = cognitoClient.adminGetUser(getUserRequest);
@@ -164,6 +126,84 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
             return APIGatewayV2HTTPResponse.builder()
                     .withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
                     .withBody("Error during sign in: " + e.getMessage())
+                    .build();
+        }
+    }
+
+    private APIGatewayV2HTTPResponse signUp(APIGatewayV2HTTPEvent event) {
+        try {
+            String body = event.getBody();
+            JsonObject jsonBody = gson.fromJson(body, JsonObject.class);
+            String username = jsonBody.get("username").getAsString();
+            String password = jsonBody.get("password").getAsString();
+
+            SignUpRequest signUpRequest = SignUpRequest.builder()
+                    .clientId(clientId)
+                    .username(username)
+                    .password(password)
+                    .build();
+
+            SignUpResponse signUpResponse = cognitoClient.signUp(signUpRequest);
+
+            return APIGatewayV2HTTPResponse.builder()
+                    .withStatusCode(HttpStatusCode.CREATED)
+                    .withBody(signUpResponse.userSub())
+                    .build();
+
+        } catch (Exception e) {
+            return APIGatewayV2HTTPResponse.builder()
+                    .withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
+                    .withBody("Error during sign up: " + e.getMessage())
+                    .build();
+        }
+    }
+
+    private APIGatewayV2HTTPResponse confirmSignUp(APIGatewayV2HTTPEvent event) {
+        try {
+            String body = event.getBody();
+            JsonObject jsonBody = gson.fromJson(body, JsonObject.class);
+            String username = jsonBody.get("username").getAsString();
+            String code = jsonBody.get("code").getAsString();
+
+            cognitoClient.confirmSignUp(ConfirmSignUpRequest.builder()
+                    .clientId(clientId)
+                    .username(username)
+                    .confirmationCode(code)
+                    .build()
+            );
+
+            return APIGatewayV2HTTPResponse.builder()
+                    .withStatusCode(HttpStatusCode.OK)
+                    .build();
+
+        } catch (Exception e) {
+            return APIGatewayV2HTTPResponse.builder()
+                    .withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
+                    .withBody("Error during sign up confirmation: " + e.getMessage())
+                    .build();
+        }
+    }
+
+    private APIGatewayV2HTTPResponse resendCode(APIGatewayV2HTTPEvent event) {
+        try {
+            String body = event.getBody();
+            JsonObject jsonBody = gson.fromJson(body, JsonObject.class);
+            String username = jsonBody.get("username").getAsString();
+
+            cognitoClient.resendConfirmationCode(ResendConfirmationCodeRequest.builder()
+                    .clientId(clientId)
+                    .username(username)
+                    .build()
+            );
+
+            return APIGatewayV2HTTPResponse.builder()
+                    .withStatusCode(HttpStatusCode.OK)
+                    .build();
+
+        } catch (Exception e) {
+            return APIGatewayV2HTTPResponse.builder()
+                    .withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
+                    .withBody("Error during resend code: " + e.getMessage())
                     .build();
         }
     }
