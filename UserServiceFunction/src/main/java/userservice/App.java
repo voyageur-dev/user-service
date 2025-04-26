@@ -77,9 +77,9 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
                     .withBody(gson.toJson(userResponse))
                     .build();
         } catch (Exception e) {
+            System.out.println("Error getting user info: " + e.getMessage());
             return APIGatewayV2HTTPResponse.builder()
                     .withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
-                    .withBody("Error getting user info: " + e.getMessage())
                     .build();
         }
     }
@@ -118,14 +118,14 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
                     .build();
 
         } catch (NotAuthorizedException e) {
+            System.out.println("Invalid username or password");
             return APIGatewayV2HTTPResponse.builder()
                     .withStatusCode(HttpStatusCode.UNAUTHORIZED)
-                    .withBody("Invalid username or password")
                     .build();
         } catch (Exception e) {
+            System.out.println("Error during sign in: " + e.getMessage());
             return APIGatewayV2HTTPResponse.builder()
                     .withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
-                    .withBody("Error during sign in: " + e.getMessage())
                     .build();
         }
     }
@@ -147,13 +147,13 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
 
             return APIGatewayV2HTTPResponse.builder()
                     .withStatusCode(HttpStatusCode.CREATED)
-                    .withBody(signUpResponse.userSub())
+                    .withBody(gson.toJson(signUpResponse))
                     .build();
 
         } catch (Exception e) {
+            System.out.println("Error during sign up: " + e.getMessage());
             return APIGatewayV2HTTPResponse.builder()
                     .withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
-                    .withBody("Error during sign up: " + e.getMessage())
                     .build();
         }
     }
@@ -177,9 +177,9 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
                     .build();
 
         } catch (Exception e) {
+            System.out.println("Error during sign up confirmation: " + e.getMessage());
             return APIGatewayV2HTTPResponse.builder()
                     .withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
-                    .withBody("Error during sign up confirmation: " + e.getMessage())
                     .build();
         }
     }
@@ -201,9 +201,9 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
                     .build();
 
         } catch (Exception e) {
+            System.out.println("Error during resend code: " + e.getMessage());
             return APIGatewayV2HTTPResponse.builder()
                     .withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
-                    .withBody("Error during resend code: " + e.getMessage())
                     .build();
         }
     }
