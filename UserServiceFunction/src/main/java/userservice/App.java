@@ -10,6 +10,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
 import software.amazon.awssdk.services.cognitoidentityprovider.model.*;
 import userservice.models.GetUserResponse;
+import userservice.models.RenewTokenResponse;
 import userservice.models.SignInResponse;
 import userservice.models.SignUpResponse;
 
@@ -27,6 +28,7 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
     private static final String CONFIRM_SIGN_UP_PATH = "POST /users/code";
     private static final String RESEND_CONFIRM_PATH = "POST /users/resend";
     private static final String GET_USER_PATH = "GET /users/{username}";
+    private static final String RENEW_TOKEN_PATH = "PUT /users/token";
 
     private final String userPoolId;
     private final String clientId;
@@ -50,6 +52,7 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
             case CONFIRM_SIGN_UP_PATH -> confirmSignUp(event);
             case RESEND_CONFIRM_PATH -> resendCode(event);
             case GET_USER_PATH -> getUser(event);
+            case RENEW_TOKEN_PATH -> renewToken(event);
             default -> APIGatewayV2HTTPResponse.builder()
                     .withStatusCode(HttpStatusCode.NOT_FOUND)
                     .withBody("Path Not Found")
@@ -203,6 +206,33 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
 
         } catch (Exception e) {
             System.out.println("Error during resend code: " + e.getMessage());
+            return APIGatewayV2HTTPResponse.builder()
+                    .withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
+                    .build();
+        }
+    }
+
+    private APIGatewayV2HTTPResponse renewToken(APIGatewayV2HTTPEvent event) {
+        try {
+            String body = event.getBody();
+            JsonObject jsonBody = gson.fromJson(body, JsonObject.class);
+            String refreshToken = jsonBody.get("refreshToken").getAsString();
+
+            InitiateAuthRequest refreshRequest = InitiateAuthRequest.builder()
+                    .authFlow(AuthFlowType.REFRESH_TOKEN_AUTH)
+                    .clientId(clientId)
+                    .authParameters(Map.of("REFRESH_TOKEN", refreshToken))
+                    .build();
+
+            InitiateAuthResponse refreshResponse = cognitoClient.initiateAuth(refreshRequest);
+
+            return APIGatewayV2HTTPResponse.builder()
+                    .withStatusCode(HttpStatusCode.CREATED)
+                    .withBody(gson.toJson(new RenewTokenResponse(refreshResponse.authenticationResult().accessToken())))
+                    .build();
+
+        } catch (Exception e) {
+            System.out.println("Error during refresh token: " + e.getMessage());
             return APIGatewayV2HTTPResponse.builder()
                     .withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
                     .build();
