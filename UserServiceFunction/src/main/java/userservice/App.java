@@ -66,19 +66,7 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
 
     private APIGatewayV2HTTPResponse getUser(APIGatewayV2HTTPEvent event) {
         try {
-            AdminGetUserRequest getUserRequest = AdminGetUserRequest.builder()
-                    .userPoolId(userPoolId)
-                    .username(event.getPathParameters().get("username"))
-                    .build();
-
-            AdminGetUserResponse getUserResponse = cognitoClient.adminGetUser(getUserRequest);
-
-            GetUserResponse userResponse = new GetUserResponse(
-                    getUserResponse.username(),
-                    getUserResponse.userStatusAsString(),
-                    getUserResponse.userCreateDate(),
-                    getUserResponse.userLastModifiedDate()
-            );
+            GetUserResponse userResponse = getUserById(event.getPathParameters().get("username"));
 
             return APIGatewayV2HTTPResponse.builder()
                     .withStatusCode(HttpStatusCode.OK)
@@ -126,15 +114,22 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
                     .build();
 
         } catch (NotAuthorizedException e) {
+            String body = event.getBody();
+            JsonObject jsonBody = gson.fromJson(body, JsonObject.class);
+            String username = jsonBody.get("username").getAsString();
+
+            GetUserResponse userResponse = getUserById(username);
+            if (UserStatusType.UNCONFIRMED.toString().equals(userResponse.userStatus())) {
+                System.out.println("Error during sign up: User email not verified");
+                return APIGatewayV2HTTPResponse.builder()
+                        .withStatusCode(HttpStatusCode.FORBIDDEN)
+                        .build();
+            }
+
             System.out.println("Error during sign in: Invalid username or password");
             return APIGatewayV2HTTPResponse.builder()
                     .withStatusCode(HttpStatusCode.UNAUTHORIZED)
                     .build();
-        } catch (UserNotConfirmedException e) {
-            System.out.println("Error during sign in: User email not verified");
-            return APIGatewayV2HTTPResponse.builder()
-                  .withStatusCode(HttpStatusCode.FORBIDDEN)
-                  .build();
         } catch (Exception e) {
             System.out.println("Error during sign in: " + e.getMessage());
             return APIGatewayV2HTTPResponse.builder()
@@ -163,12 +158,19 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
                     .withBody(gson.toJson(signUpResponse))
                     .build();
 
-        } catch (UserNotConfirmedException e) {
-            System.out.println("Error during sign up: User email not verified");
-            return APIGatewayV2HTTPResponse.builder()
-                   .withStatusCode(HttpStatusCode.FORBIDDEN)
-                   .build();
         } catch (UsernameExistsException e) {
+            String body = event.getBody();
+            JsonObject jsonBody = gson.fromJson(body, JsonObject.class);
+            String username = jsonBody.get("username").getAsString();
+
+            GetUserResponse userResponse = getUserById(username);
+            if (UserStatusType.UNCONFIRMED.toString().equals(userResponse.userStatus())) {
+                System.out.println("Error during sign up: User email not verified");
+                return APIGatewayV2HTTPResponse.builder()
+                        .withStatusCode(HttpStatusCode.FORBIDDEN)
+                        .build();
+            }
+
             System.out.println("Error during sign up: User already exist");
             return APIGatewayV2HTTPResponse.builder()
                     .withStatusCode(HttpStatusCode.BAD_REQUEST)
@@ -312,6 +314,24 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
                     .withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
                     .build();
         }
+    }
+
+    private GetUserResponse getUserById(String username) {
+        AdminGetUserRequest getUserRequest = AdminGetUserRequest.builder()
+                .userPoolId(userPoolId)
+                .username(username)
+                .build();
+
+        AdminGetUserResponse getUserResponse = cognitoClient.adminGetUser(getUserRequest);
+
+        GetUserResponse userResponse = new GetUserResponse(
+                getUserResponse.username(),
+                getUserResponse.userStatusAsString(),
+                getUserResponse.userCreateDate(),
+                getUserResponse.userLastModifiedDate()
+        );
+
+        return userResponse;
     }
 
     private static class InstantTypeAdapter implements JsonSerializer<Instant>, JsonDeserializer<Instant> {
