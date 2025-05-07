@@ -29,6 +29,8 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
     private static final String RESEND_CONFIRM_PATH = "POST /users/resend";
     private static final String GET_USER_PATH = "GET /users/{username}";
     private static final String RENEW_TOKEN_PATH = "PUT /users/token";
+    private static final String FORGOT_PASSWORD_PATH = "POST /users/forgot";
+    private static final String CONFIRM_FORGOT_PASSWORD_PATH = "POST /users/forgot/code";
 
     private final String userPoolId;
     private final String clientId;
@@ -53,6 +55,8 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
             case RESEND_CONFIRM_PATH -> resendCode(event);
             case GET_USER_PATH -> getUser(event);
             case RENEW_TOKEN_PATH -> renewToken(event);
+            case FORGOT_PASSWORD_PATH -> forgotPassword(event);
+            case CONFIRM_FORGOT_PASSWORD_PATH -> confirmForgotPassword(event);
             default -> APIGatewayV2HTTPResponse.builder()
                     .withStatusCode(HttpStatusCode.NOT_FOUND)
                     .withBody("Path Not Found")
@@ -122,10 +126,15 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
                     .build();
 
         } catch (NotAuthorizedException e) {
-            System.out.println("Invalid username or password");
+            System.out.println("Error during sign in: Invalid username or password");
             return APIGatewayV2HTTPResponse.builder()
                     .withStatusCode(HttpStatusCode.UNAUTHORIZED)
                     .build();
+        } catch (UserNotConfirmedException e) {
+            System.out.println("Error during sign in: User email not verified");
+            return APIGatewayV2HTTPResponse.builder()
+                  .withStatusCode(HttpStatusCode.FORBIDDEN)
+                  .build();
         } catch (Exception e) {
             System.out.println("Error during sign in: " + e.getMessage());
             return APIGatewayV2HTTPResponse.builder()
@@ -154,6 +163,16 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
                     .withBody(gson.toJson(signUpResponse))
                     .build();
 
+        } catch (UserNotConfirmedException e) {
+            System.out.println("Error during sign up: User email not verified");
+            return APIGatewayV2HTTPResponse.builder()
+                   .withStatusCode(HttpStatusCode.FORBIDDEN)
+                   .build();
+        } catch (UsernameExistsException e) {
+            System.out.println("Error during sign up: User already exist");
+            return APIGatewayV2HTTPResponse.builder()
+                    .withStatusCode(HttpStatusCode.BAD_REQUEST)
+                    .build();
         } catch (Exception e) {
             System.out.println("Error during sign up: " + e.getMessage());
             return APIGatewayV2HTTPResponse.builder()
@@ -233,6 +252,62 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
 
         } catch (Exception e) {
             System.out.println("Error during refresh token: " + e.getMessage());
+            return APIGatewayV2HTTPResponse.builder()
+                    .withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
+                    .build();
+        }
+    }
+
+    private APIGatewayV2HTTPResponse forgotPassword(APIGatewayV2HTTPEvent event) {
+        try {
+            String body = event.getBody();
+            JsonObject jsonBody = gson.fromJson(body, JsonObject.class);
+            String username = jsonBody.get("username").getAsString();
+
+            ForgotPasswordRequest forgotPasswordRequest = ForgotPasswordRequest.builder()
+                    .clientId(clientId)
+                    .username(username)
+                    .build();
+
+            cognitoClient.forgotPassword(forgotPasswordRequest);
+
+            return APIGatewayV2HTTPResponse.builder()
+                    .withStatusCode(HttpStatusCode.OK)
+                    .withBody("Password reset code sent successfully")
+                    .build();
+
+        } catch (Exception e) {
+            System.out.println("Error during forgot password: " + e.getMessage());
+            return APIGatewayV2HTTPResponse.builder()
+                    .withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
+                    .build();
+        }
+    }
+
+    private APIGatewayV2HTTPResponse confirmForgotPassword(APIGatewayV2HTTPEvent event) {
+        try {
+            String body = event.getBody();
+            JsonObject jsonBody = gson.fromJson(body, JsonObject.class);
+            String username = jsonBody.get("username").getAsString();
+            String confirmationCode = jsonBody.get("confirmationCode").getAsString();
+            String newPassword = jsonBody.get("newPassword").getAsString();
+
+            ConfirmForgotPasswordRequest confirmForgotPasswordRequest = ConfirmForgotPasswordRequest.builder()
+                    .clientId(clientId)
+                    .username(username)
+                    .confirmationCode(confirmationCode)
+                    .password(newPassword)
+                    .build();
+
+            cognitoClient.confirmForgotPassword(confirmForgotPasswordRequest);
+
+            return APIGatewayV2HTTPResponse.builder()
+                    .withStatusCode(HttpStatusCode.OK)
+                    .withBody("Password has been reset successfully")
+                    .build();
+
+        } catch (Exception e) {
+            System.out.println("Error during confirm forgot password: " + e.getMessage());
             return APIGatewayV2HTTPResponse.builder()
                     .withStatusCode(HttpStatusCode.INTERNAL_SERVER_ERROR)
                     .build();
