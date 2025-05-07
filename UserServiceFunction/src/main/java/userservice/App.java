@@ -32,6 +32,8 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
     private static final String FORGOT_PASSWORD_PATH = "POST /users/forgot";
     private static final String CONFIRM_FORGOT_PASSWORD_PATH = "POST /users/forgot/code";
 
+    private static final String USERNAME = "username";
+    
     private final String userPoolId;
     private final String clientId;
     private final CognitoIdentityProviderClient cognitoClient;
@@ -66,7 +68,7 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
 
     private APIGatewayV2HTTPResponse getUser(APIGatewayV2HTTPEvent event) {
         try {
-            GetUserResponse userResponse = getUserById(event.getPathParameters().get("username"));
+            GetUserResponse userResponse = getUserById(event.getPathParameters().get(USERNAME));
 
             return APIGatewayV2HTTPResponse.builder()
                     .withStatusCode(HttpStatusCode.OK)
@@ -84,7 +86,7 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
         try {
             String body = event.getBody();
             JsonObject jsonBody = gson.fromJson(body, JsonObject.class);
-            String username = jsonBody.get("username").getAsString();
+            String username = jsonBody.get(USERNAME).getAsString();
             String password = jsonBody.get("password").getAsString();
 
             AdminInitiateAuthRequest authRequest = AdminInitiateAuthRequest.builder()
@@ -113,19 +115,12 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
                     .withBody(gson.toJson(signInResponse))
                     .build();
 
+        } catch (UserNotConfirmedException e) {
+            System.out.println("Error during sign in: User email not verified");
+            return APIGatewayV2HTTPResponse.builder()
+                    .withStatusCode(HttpStatusCode.FORBIDDEN)
+                    .build();
         } catch (NotAuthorizedException e) {
-            String body = event.getBody();
-            JsonObject jsonBody = gson.fromJson(body, JsonObject.class);
-            String username = jsonBody.get("username").getAsString();
-
-            GetUserResponse userResponse = getUserById(username);
-            if (UserStatusType.UNCONFIRMED.toString().equals(userResponse.userStatus())) {
-                System.out.println("Error during sign up: User email not verified");
-                return APIGatewayV2HTTPResponse.builder()
-                        .withStatusCode(HttpStatusCode.FORBIDDEN)
-                        .build();
-            }
-
             System.out.println("Error during sign in: Invalid username or password");
             return APIGatewayV2HTTPResponse.builder()
                     .withStatusCode(HttpStatusCode.UNAUTHORIZED)
@@ -142,7 +137,7 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
         try {
             String body = event.getBody();
             JsonObject jsonBody = gson.fromJson(body, JsonObject.class);
-            String username = jsonBody.get("username").getAsString();
+            String username = jsonBody.get(USERNAME).getAsString();
             String password = jsonBody.get("password").getAsString();
 
             SignUpRequest signUpRequest = SignUpRequest.builder()
@@ -161,7 +156,7 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
         } catch (UsernameExistsException e) {
             String body = event.getBody();
             JsonObject jsonBody = gson.fromJson(body, JsonObject.class);
-            String username = jsonBody.get("username").getAsString();
+            String username = jsonBody.get(USERNAME).getAsString();
 
             GetUserResponse userResponse = getUserById(username);
             if (UserStatusType.UNCONFIRMED.toString().equals(userResponse.userStatus())) {
@@ -187,7 +182,7 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
         try {
             String body = event.getBody();
             JsonObject jsonBody = gson.fromJson(body, JsonObject.class);
-            String username = jsonBody.get("username").getAsString();
+            String username = jsonBody.get(USERNAME).getAsString();
             String code = jsonBody.get("code").getAsString();
 
             cognitoClient.confirmSignUp(ConfirmSignUpRequest.builder()
@@ -213,7 +208,7 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
         try {
             String body = event.getBody();
             JsonObject jsonBody = gson.fromJson(body, JsonObject.class);
-            String username = jsonBody.get("username").getAsString();
+            String username = jsonBody.get(USERNAME).getAsString();
 
             cognitoClient.resendConfirmationCode(ResendConfirmationCodeRequest.builder()
                     .clientId(clientId)
@@ -264,7 +259,7 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
         try {
             String body = event.getBody();
             JsonObject jsonBody = gson.fromJson(body, JsonObject.class);
-            String username = jsonBody.get("username").getAsString();
+            String username = jsonBody.get(USERNAME).getAsString();
 
             ForgotPasswordRequest forgotPasswordRequest = ForgotPasswordRequest.builder()
                     .clientId(clientId)
@@ -290,7 +285,7 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
         try {
             String body = event.getBody();
             JsonObject jsonBody = gson.fromJson(body, JsonObject.class);
-            String username = jsonBody.get("username").getAsString();
+            String username = jsonBody.get(USERNAME).getAsString();
             String confirmationCode = jsonBody.get("confirmationCode").getAsString();
             String newPassword = jsonBody.get("newPassword").getAsString();
 
