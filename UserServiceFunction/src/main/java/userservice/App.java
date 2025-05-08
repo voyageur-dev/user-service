@@ -244,7 +244,11 @@ public class App implements RequestHandler<APIGatewayV2HTTPEvent, APIGatewayV2HT
 
             return APIGatewayV2HTTPResponse.builder()
                     .withStatusCode(HttpStatusCode.CREATED)
-                    .withBody(gson.toJson(new RenewTokenResponse(refreshResponse.authenticationResult().accessToken())))
+                    .withBody(gson.toJson(new RenewTokenResponse(
+                            refreshResponse.authenticationResult().accessToken(),
+                            refreshResponse.authenticationResult().refreshToken(),
+                            refreshResponse.authenticationResult().expiresIn()
+                    )))
                     .build();
 
         } catch (Exception e) {
